@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Healthcare API — Playground</title>
+<style>
+  :root {
+    --bg: #f2f5fa;
+    --card: #ffffff;
+    --border: #e3e9f2;
+    --text: #1e293b;
+    --muted: #64748b;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --danger: #dc2626;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(120deg, #1e3a8a, #2563eb);
+    color: #fff;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 20px; font-weight: 700; letter-spacing: .2px; }
+  header .sub { font-size: 13px; opacity: .85; margin-top: 2px; }
+  .auth-status {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.14);
+    padding: 8px 14px; border-radius: 999px; font-size: 13px;
+  }
+  .auth-status button {
+    background: #fff; color: var(--primary-dark); border: none;
+    padding: 5px 12px; border-radius: 999px; font-size: 12px;
+    font-weight: 600; cursor: pointer;
+  }
+  .auth-status button:hover { opacity: .9; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #fbbf24; }
+  .dot.on { background: #4ade80; }
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 20px;
+    padding: 20px 24px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.05);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  .card .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 12.5px; font-weight: 600; margin: 10px 0 4px; color: #334155; }
+  input, select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: inherit;
+    background: #fbfcfe; color: var(--text); transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12); background: #fff;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary); color: #fff; border: none; cursor: pointer;
+    padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    transition: background .15s, transform .05s;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+  .btn.ghost:hover { background: rgba(37,99,235,.07); }
+  .btn.danger { background: transparent; color: var(--danger); border: 1px solid #fecaca; }
+  .btn.danger:hover { background: #fef2f2; }
+  .btn.sm { padding: 5px 11px; font-size: 12.5px; border-radius: 7px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mt { margin-top: 14px; }
+  /* tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tab {
+    border: 1px solid var(--border); background: #fff; color: var(--muted);
+    padding: 9px 18px; border-radius: 999px; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; transition: all .15s;
+  }
+  .tab:hover { border-color: var(--primary); color: var(--primary); }
+  .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .panel { display: none; animation: fade .18s ease; }
+  .panel.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  /* records */
+  .record {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 15px; margin-top: 10px; background: #fbfcfe;
+    display: flex; justify-content: space-between; gap: 12px; align-items: flex-start;
+  }
+  .record .title { font-weight: 700; font-size: 14.5px; }
+  .record .meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .record .actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
+    border-radius: 999px; margin-left: 6px; vertical-align: 1px;
+  }
+  .badge.mine { background: #dcfce7; color: #15803d; }
+  .empty { color: var(--muted); font-size: 13.5px; padding: 10px 2px; }
+  /* console */
+  .console { position: sticky; top: 20px; }
+  .console .status {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 12.5px; font-weight: 700; margin-bottom: 8px;
+  }
+  .status.ok { background: #dcfce7; color: #15803d; }
+  .status.err { background: #fee2e2; color: #b91c1c; }
+  .console .req { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; margin-bottom: 8px; }
+  .console pre {
+    background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px;
+    font-size: 12px; overflow: auto; max-height: 320px; white-space: pre-wrap; word-break: break-word;
+  }
+  .console .placeholder { color: var(--muted); font-size: 13px; }
+  /* toasts */
+  #toasts { position: fixed; top: 16px; right: 16px; z-index: 50; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    padding: 11px 16px; border-radius: 9px; color: #fff; font-size: 13.5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); animation: slide .2s ease; max-width: 320px;
+  }
+  .toast.ok { background: var(--success); }
+  .toast.err { background: var(--danger); }
+  @keyframes slide { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+  .hidden { display: none !important; }
+  form .form-actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏥 Healthcare API — Playground</h1>
+    <div class="sub">Django + DRF + PostgreSQL + JWT · test every endpoint right here</div>
+  </div>
+  <div class="auth-status">
+    <span class="dot" id="status-dot"></span>
+    <span id="status-text">Not signed in</span>
+    <button id="logout-btn" class="hidden" onclick="logout()">Log out</button>
+  </div>
+</header>
+
+<main>
+  <div>
+    <!-- ===================== AUTH ===================== -->
+    <div id="auth-panel" class="card hidden">
+      <h2>🔐 Get started</h2>
+      <p class="hint">Register a new account or log in to receive a JWT. It is stored in your browser and attached to every request automatically.</p>
+      <div class="grid-2">
+        <form id="register-form">
+          <h2>Register</h2>
+          <label>Name</label>
+          <input name="name" placeholder="Jane Doe" required>
+          <label>Email</label>
+          <input name="email" type="email" placeholder="jane@example.com" required>
+          <label>Password <span style="color:var(--muted);font-weight:400">(min 8 chars)</span></label>
+          <input name="password" type="password" placeholder="••••••••" minlength="8" required>
+          <div class="form-actions"><button class="btn" type="submit">Register</button></div>
+        </form>
+        <form id="login-form">
+          <h2>Log in</h2>
+          <label>Email</label>
+          <input name="email" type="email" placeholder="jane@example.com" required>
+          <label>Password</label>
+          <input name="password" type="password" placeholder="••••••••" required>
+          <div class="form-actions"><button class="btn" type="submit">Log in</button></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== WORKSPACE ===================== -->
+    <div id="workspace" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-tab="patients">Patients</button>
+        <button class="tab" data-tab="doctors">Doctors</button>
+        <button class="tab" data-tab="mappings">Mappings</button>
+      </div>
+
+      <!-- Patients -->
+      <section class="panel active" id="panel-patients">
+        <div class="card">
+          <h2 id="patient-form-title">➕ Add a patient</h2>
+          <p class="hint">Patients belong to you — other users can never see or modify them.</p>
+          <form id="patient-form">
+            <div class="grid-2">
+              <div>
+                <label>Name *</label>
+                <input name="name" placeholder="John Doe" required>
+                <label>Age *</label>
+                <input name="age" type="number" min="1" max="150" placeholder="45" required>
+                <label>Gender *</label>
+                <select name="gender">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <label>Phone</label>
+                <input name="phone" placeholder="9876543210">
+              </div>
+              <div>
+                <label>Address</label>
+                <textarea name="address" placeholder="12 Main St, Springfield"></textarea>
+                <label>Medical history</label>
+                <textarea name="medical_history" placeholder="Diabetes, allergies, …"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" type="submit" id="patient-submit">Add patient</button>
+              <button class="btn ghost hidden" type="button" id="patient-cancel" onclick="cancelPatientEdit()">Cancel edit</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>📋 My patients <span id="patient-count" class="badge mine hidden"></span></h2>
+          <div id="patient-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Doctors -->
+      <section class="panel" id="panel-doctors">
+        <div class="card">
+          <h2 id="doctor-form-title">➕ Add a doctor</h2>
+          <p class="hint">Doctors are visible to everyone; only the creator can edit or delete them.</p>
+          <form id="doctor-form">
+            <div class="grid-2">
+              <div>
+                <label>Name *</label>
+                <input name="name" placeholder="Dr. Smith" required>
+                <label>Specialization *</label>
+                <input name="specialization" placeholder="Cardiology" required>
+              </div>
+              <div>
+                <label>Phone</label>
+                <input name="phone" placeholder="1234567890">
+                <label>Email</label>
+                <input name="email" type="email" placeholder="smith@hospital.com">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" type="submit" id="doctor-submit">Add doctor</button>
+              <button class="btn ghost hidden" type="button" id="doctor-cancel" onclick="cancelDoctorEdit()">Cancel edit</button>
+            </div>
+          </form>
+        </div>
+        <div class="card">
+          <h2>🩺 All doctors <span id="doctor-count" class="badge mine hidden"></span></h2>
+          <div id="doctor-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Mappings -->
+      <section class="panel" id="panel-mappings">
+        <div class="card">
+          <h2>🔗 Assign a doctor to a patient</h2>
+          <p class="hint">You can only assign doctors to your own patients. Duplicate assignments are rejected.</p>
+          <div class="grid-2">
+            <div>
+              <label>Patient</label>
+              <select id="map-patient"></select>
+            </div>
+            <div>
+              <label>Doctor</label>
+              <select id="map-doctor"></select>
+            </div>
+          </div>
+          <div class="form-actions"><button class="btn" id="map-submit" onclick="assignMapping()">Assign doctor</button></div>
+        </div>
+        <div class="card">
+          <h2>🔍 Doctors for a specific patient</h2>
+          <div class="row">
+            <select id="lookup-patient" style="max-width:260px"></select>
+            <button class="btn ghost" onclick="lookupPatientDoctors()">Look up</button>
+          </div>
+          <div id="lookup-result" class="empty mt">Pick a patient and click "Look up" — calls GET /api/mappings/&lt;patient_id&gt;/</div>
+        </div>
+        <div class="card">
+          <h2>📋 My mappings <span id="mapping-count" class="badge mine hidden"></span></h2>
+          <div id="mapping-list"><div class="empty">Loading…</div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ===================== CONSOLE ===================== -->
+  <aside class="card console">
+    <h2>🖥️ Console</h2>
+    <p class="hint">Last request / response</p>
+    <span class="status" id="con-status">—</span>
+    <div class="req" id="con-req">No requests yet</div>
+    <pre id="con-body" class="placeholder">Responses will appear here…</pre>
+  </aside>
+</main>
+
+<div id="toasts"></div>
+
+<script>
+const API = "/api";
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+let accessToken = localStorage.getItem("hc_access") || null;
+let refreshToken = localStorage.getItem("hc_refresh") || null;
+let editingPatientId = null;
+let editingDoctorId = null;
+
+/* ---------- helpers ---------- */
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function toast(msg, ok = true) {
+  const el = document.createElement("div");
+  el.className = "toast " + (ok ? "ok" : "err");
+  el.textContent = msg;
+  $("#toasts").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function setConsole(method, path, status, body) {
+  const ok = status >= 200 && status < 300;
+  const badge = $("#con-status");
+  badge.textContent = "HTTP " + status;
+  badge.className = "status " + (ok ? "ok" : "err");
+  $("#con-req").textContent = method + " " + path;
+  const pre = $("#con-body");
+  pre.classList.remove("placeholder");
+  pre.textContent = body == null ? "(no body)" : JSON.stringify(body, null, 2);
+}
+
+async function api(method, path, body) {
+  const headers = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (accessToken) headers["Authorization"] = "Bearer " + accessToken;
+
+  let res = await fetch(API + path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+
+  // Session expired? Try one silent refresh, then retry once.
+  if (res.status === 401 && refreshToken) {
+    const r = await fetch(API + "/auth/refresh/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+    if (r.ok) {
+      const tokens = await r.json();
+      accessToken = tokens.access;
+      localStorage.setItem("hc_access", accessToken);
+      headers["Authorization"] = "Bearer " + accessToken;
+      res = await fetch(API + path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    }
+  }
+
+  const data = res.status === 204 ? null : await res.json().catch(() => null);
+  setConsole(method, path, res.status, data);
+  if (!res.ok) {
+    const msg = data && typeof data === "object"
+      ? Object.entries(data).map(([k, v]) => k + ": " + (Array.isArray(v) ? v.join(" ") : v)).join(" · ")
+      : "Request failed";
+    throw new Error("HTTP " + res.status + " — " + msg);
+  }
+  return data;
+}
+
+/* ---------- auth ---------- */
+
+function setSignedIn(email) {
+  $("#auth-panel").classList.add("hidden");
+  $("#workspace").classList.remove("hidden");
+  $("#status-dot").classList.add("on");
+  $("#status-text").textContent = "Signed in as " + email;
+  $("#logout-btn").classList.remove("hidden");
+  loadAll();
+}
+
+function setSignedOut() {
+  $("#auth-panel").classList.remove("hidden");
+  $("#workspace").classList.add("hidden");
+  $("#status-dot").classList.remove("on");
+  $("#status-text").textContent = "Not signed in";
+  $("#logout-btn").classList.add("hidden");
+}
+
+function logout() {
+  accessToken = refreshToken = null;
+  localStorage.removeItem("hc_access");
+  localStorage.removeItem("hc_refresh");
+  setSignedOut();
+  toast("Logged out");
+}
+
+async function handleFormSubmit(form, action) {
+  const data = Object.fromEntries(new FormData(form));
+  try { await action(data); } catch (e) { toast(e.message, false); }
+}
+
+$("#register-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleFormSubmit(e.target, async (data) => {
+    await api("POST", "/auth/register/", data);
+    toast("Registered! Logging you in…");
+    const tokens = await api("POST", "/auth/login/", { email: data.email, password: data.password });
+    accessToken = tokens.access; refreshToken = tokens.refresh;
+    localStorage.setItem("hc_access", accessToken);
+    localStorage.setItem("hc_refresh", refreshToken);
+    setSignedIn(data.email);
+  });
+});
+
+$("#login-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleFormSubmit(e.target, async (data) => {
+    const tokens = await api("POST", "/auth/login/", data);
+    accessToken = tokens.access; refreshToken = tokens.refresh;
+    localStorage.setItem("hc_access", accessToken);
+    localStorage.setItem("hc_refresh", refreshToken);
+    setSignedIn(data.email);
+    toast("Welcome back, " + data.email + "!");
+  });
+});
+
+/* ---------- tabs ---------- */
+
+$$(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    $$(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+    $$(".panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + tab.dataset.tab));
+  });
+});
+
+/* ---------- patients ---------- */
+
+async function loadPatients() {
+  const patients = await api("GET", "/patients/");
+  const list = $("#patient-list");
+  const count = $("#patient-count");
+  count.textContent = patients.length;
+  count.classList.toggle("hidden", patients.length === 0);
+  list.innerHTML = patients.length
+    ? patients.map((p) => `
+      <div class="record">
+        <div>
+          <div class="title">${esc(p.name)} <span class="badge mine">${esc(p.gender)}</span></div>
+          <div class="meta">Age ${esc(p.age)}${p.phone ? " · 📞 " + esc(p.phone) : ""}${p.address ? " · 📍 " + esc(p.address) : ""}</div>
+          ${p.medical_history ? `<div class="meta">🩺 ${esc(p.medical_history)}</div>` : ""}
+          <div class="meta">ID ${p.id} · updated ${new Date(p.updated_at).toLocaleString()}</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost sm" onclick='editPatient(${JSON.stringify(p).replace(/'/g, "&#39;")})'>Edit</button>
+          <button class="btn danger sm" onclick="deletePatient(${p.id})">Delete</button>
+        </div>
+      </div>`).join("")
+    : '<div class="empty">No patients yet — add your first one above.</div>';
+  syncPatientSelects(patients);
+}
+
+function syncPatientSelects(patients) {
+  const opts = patients.map((p) => `<option value="${p.id}">${esc(p.name)} (ID ${p.id})</option>`).join("");
+  $("#map-patient").innerHTML = opts || '<option value="">No patients yet</option>';
+  $("#lookup-patient").innerHTML = opts || '<option value="">No patients yet</option>';
+}
+
+$("#patient-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  data.age = Number(data.age);
+  try {
+    if (editingPatientId === null) {
+      await api("POST", "/patients/", data);
+      toast("Patient added");
+    } else {
+      await api("PUT", "/patients/" + editingPatientId + "/", data);
+      toast("Patient updated");
+      cancelPatientEdit();
+    }
+    e.target.reset();
+    await Promise.all([loadPatients(), loadMappings()]);
+  } catch (err) { toast(err.message, false); }
+});
+
+function editPatient(p) {
+  editingPatientId = p.id;
+  const f = $("#patient-form");
+  f.name.value = p.name; f.age.value = p.age; f.gender.value = p.gender;
+  f.phone.value = p.phone; f.address.value = p.address; f.medical_history.value = p.medical_history;
+  $("#patient-form-title").textContent = "✏️ Editing: " + p.name;
+  $("#patient-submit").textContent = "Save changes";
+  $("#patient-cancel").classList.remove("hidden");
+  f.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cancelPatientEdit() {
+  editingPatientId = null;
+  $("#patient-form").reset();
+  $("#patient-form-title").textContent = "➕ Add a patient";
+  $("#patient-submit").textContent = "Add patient";
+  $("#patient-cancel").classList.add("hidden");
+}
+
+async function deletePatient(id) {
+  if (!confirm("Delete this patient? Their mappings will be removed too.")) return;
+  try {
+    await api("DELETE", "/patients/" + id + "/");
+    toast("Patient deleted");
+    await Promise.all([loadPatients(), loadMappings()]);
+  } catch (err) { toast(err.message, false); }
+}
+
+/* ---------- doctors ---------- */
+
+async function loadDoctors() {
+  const doctors = await api("GET", "/doctors/");
+  const list = $("#doctor-list");
+  const count = $("#doctor-count");
+  count.textContent = doctors.length;
+  count.classList.toggle("hidden", doctors.length === 0);
+  list.innerHTML = doctors.length
+    ? doctors.map((d) => `
+      <div class="record">
+        <div>
+          <div class="title">${esc(d.name)}</div>
+          <div class="meta">${esc(d.specialization)}${d.phone ? " · 📞 " + esc(d.phone) : ""}${d.email ? " · ✉️ " + esc(d.email) : ""}</div>
+          <div class="meta">ID ${d.id} · added ${new Date(d.created_at).toLocaleDateString()}</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost sm" onclick='editDoctor(${JSON.stringify(d).replace(/'/g, "&#39;")})'>Edit</button>
+          <button class="btn danger sm" onclick="deleteDoctor(${d.id})">Delete</button>
+        </div>
+      </div>`).join("")
+    : '<div class="empty">No doctors yet.</div>';
+  $("#map-doctor").innerHTML = doctors.map((d) => `<option value="${d.id}">${esc(d.name)} — ${esc(d.specialization)}</option>`).join("") || '<option value="">No doctors yet</option>';
+}
+
+$("#doctor-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  try {
+    if (editingDoctorId === null) {
+      await api("POST", "/doctors/", data);
+      toast("Doctor added");
+    } else {
+      await api("PUT", "/doctors/" + editingDoctorId + "/", data);
+      toast("Doctor updated");
+      cancelDoctorEdit();
+    }
+    e.target.reset();
+    await Promise.all([loadDoctors(), loadMappings()]);
+  } catch (err) { toast(err.message, false); }
+});
+
+function editDoctor(d) {
+  editingDoctorId = d.id;
+  const f = $("#doctor-form");
+  f.name.value = d.name; f.specialization.value = d.specialization;
+  f.phone.value = d.phone; f.email.value = d.email;
+  $("#doctor-form-title").textContent = "✏️ Editing: " + d.name;
+  $("#doctor-submit").textContent = "Save changes";
+  $("#doctor-cancel").classList.remove("hidden");
+  f.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cancelDoctorEdit() {
+  editingDoctorId = null;
+  $("#doctor-form").reset();
+  $("#doctor-form-title").textContent = "➕ Add a doctor";
+  $("#doctor-submit").textContent = "Add doctor";
+  $("#doctor-cancel").classList.add("hidden");
+}
+
+async function deleteDoctor(id) {
+  if (!confirm("Delete this doctor?")) return;
+  try {
+    await api("DELETE", "/doctors/" + id + "/");
+    toast("Doctor deleted");
+    await Promise.all([loadDoctors(), loadMappings()]);
+  } catch (err) { toast(err.message, false); }
+}
+
+/* ---------- mappings ---------- */
+
+async function loadMappings() {
+  const mappings = await api("GET", "/mappings/");
+  const list = $("#mapping-list");
+  const count = $("#mapping-count");
+  count.textContent = mappings.length;
+  count.classList.toggle("hidden", mappings.length === 0);
+  list.innerHTML = mappings.length
+    ? mappings.map((m) => `
+      <div class="record">
+        <div>
+          <div class="title">${esc(m.patient_name)} → ${esc(m.doctor_name)}</div>
+          <div class="meta">${esc(m.doctor_specialization)} · mapping ID ${m.id} · assigned ${new Date(m.assigned_at).toLocaleString()}</div>
+        </div>
+        <div class="actions">
+          <button class="btn danger sm" onclick="deleteMapping(${m.id})">Remove</button>
+        </div>
+      </div>`).join("")
+    : '<div class="empty">No mappings yet — assign a doctor to a patient above.</div>';
+}
+
+async function assignMapping() {
+  const patient = Number($("#map-patient").value);
+  const doctor = Number($("#map-doctor").value);
+  if (!patient || !doctor) { toast("Create at least one patient and one doctor first", false); return; }
+  try {
+    await api("POST", "/mappings/", { patient, doctor });
+    toast("Doctor assigned to patient");
+    await loadMappings();
+  } catch (err) { toast(err.message, false); }
+}
+
+async function deleteMapping(id) {
+  if (!confirm("Remove this mapping?")) return;
+  try {
+    await api("DELETE", "/mappings/" + id + "/");
+    toast("Mapping removed");
+    await loadMappings();
+  } catch (err) { toast(err.message, false); }
+}
+
+async function lookupPatientDoctors() {
+  const patient = Number($("#lookup-patient").value);
+  if (!patient) { toast("Pick a patient first", false); return; }
+  try {
+    const mappings = await api("GET", "/mappings/" + patient + "/");
+    $("#lookup-result").innerHTML = mappings.length
+      ? mappings.map((m) => `<div class="record"><div><div class="title">${esc(m.doctor_name)}</div><div class="meta">${esc(m.doctor_specialization)} · assigned ${new Date(m.assigned_at).toLocaleString()}</div></div></div>`).join("")
+      : '<div class="empty">No doctors assigned to this patient.</div>';
+  } catch (err) { toast(err.message, false); }
+}
+
+/* ---------- boot ---------- */
+
+async function loadAll() {
+  try {
+    await Promise.all([loadPatients(), loadDoctors(), loadMappings()]);
+  } catch (e) {
+    toast("Session expired — please log in again", false);
+    setSignedOut();
+  }
+}
+
+function jwtUserId(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.user_id;
+  } catch (e) { return null; }
+}
+
+if (accessToken) {
+  loadAll()
+    .then(() => setSignedIn("user #" + (jwtUserId(accessToken) ?? "?")))
+    .catch(() => setSignedOut());
+} else {
+  setSignedOut();
+}
+</script>
+</body>
+</html>
